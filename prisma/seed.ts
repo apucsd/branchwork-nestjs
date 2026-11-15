@@ -79,7 +79,8 @@ async function main() {
         },
     });
 
-    // 5. CREATE STAFF USER (STOCK CLERK)
+    // 5. CREATE STAFF USERS
+    // A) STOCK CLERK IN GULSHAN
     await prisma.user.create({
         data: {
             name: 'Demo Clerk',
@@ -92,6 +93,24 @@ async function main() {
                     organizationId: org.id,
                     branchId: gulshan.id,
                     roleId: stockClerkRole.id,
+                },
+            },
+        },
+    });
+
+    // B) BRANCH MANAGER IN DHANMONDI
+    await prisma.user.create({
+        data: {
+            name: 'Karim Ahmed',
+            email: 'manager@branchwork.demo',
+            password: passwordHash,
+            status: UserStatus.ACTIVE,
+            isVerified: true,
+            staffProfile: {
+                create: {
+                    organizationId: org.id,
+                    branchId: dhanmondi.id,
+                    roleId: branchManagerRole.id,
                 },
             },
         },
@@ -127,10 +146,37 @@ async function main() {
                 organizationId: org.id,
                 branchId: gulshan.id,
             },
+            {
+                name: 'Soybean oil 5L',
+                sku: 'OIL-002',
+                category: 'Grocery',
+                price: 820,
+                stock: 35,
+                organizationId: org.id,
+                branchId: dhanmondi.id,
+            },
+            {
+                name: 'Ceramic dinner set',
+                sku: 'HOM-105',
+                category: 'Home',
+                price: 3400,
+                stock: 8,
+                organizationId: org.id,
+                branchId: gulshan.id,
+            },
+            {
+                name: 'Organic Honey 500g',
+                sku: 'GRO-301',
+                category: 'Grocery',
+                price: 650,
+                stock: 15,
+                organizationId: org.id,
+                branchId: dhanmondi.id,
+            },
         ],
     });
 
-    console.log('Seed completed successfully.');
+    console.log('Seed completed successfully for Padma Retail.');
 }
 
 main()
