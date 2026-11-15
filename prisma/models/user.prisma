@@ -3,21 +3,18 @@ model User {
   name       String
   email      String     @unique
   password   String?
-  image      String?   @default("https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
+  image      String?    @default("https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
   status     UserStatus @default(ACTIVE)
   isVerified Boolean    @default(false)
-
 
   // OTP AND VERIFICATION
   otp        Int?
   otpExpiry  DateTime?
   otpType    OtpType?
 
-  // PROJECT RELATIONS
-  ownedProjects       Project[]       @relation("ProjectOwner")
-  projectMemberships  ProjectMember[] @relation("ProjectMemberUser")
-  assignedTasks       Task[]          @relation("TaskAssignee")
-
+  // BRANCHWORK RELATIONS
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
+  staffProfile       StaffMember?   @relation("StaffUser")
 
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
@@ -30,7 +27,6 @@ enum OtpType {
   PASSWORD_RESET
   EMAIL_CHANGE
 }
-
 
 enum UserStatus {
   ACTIVE
