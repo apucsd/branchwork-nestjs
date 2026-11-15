@@ -65,12 +65,12 @@ export class AuthController {
         return rest;
     }
 
-    // @Get('/me')
-    // @UseGuards(AuthGuard)
-    // @ResponseMessage('Current user retrieved successfully')
-    // async getMe(@CurrentUser('id') userId: string) {
-    //     return await this.authService.getUserContext(userId);
-    // }
+    @Get('/me')
+    @UseGuards(AuthGuard)
+    @ResponseMessage('Current user retrieved successfully')
+    async getMe(@CurrentUser('id') userId: string) {
+        return await this.authService.getUserContext(userId);
+    }
 
     @Post('/change-password')
     @UseGuards(AuthGuard)
