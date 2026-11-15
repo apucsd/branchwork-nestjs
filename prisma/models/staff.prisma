@@ -1,0 +1,15 @@
+model StaffMember {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation("StaffUser", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  roleId         String
+  role           Role         @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  createdAt      DateTime     @default(now())
+
+  @@map("staff_members")
+}
+
