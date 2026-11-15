@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { TaskPriority, TaskStatus, UserStatus } from '../generated/prisma/enums';
+import { UserStatus } from '../generated/prisma/enums';
 import * as bcrypt from 'bcrypt';
 
 const adapter = new PrismaPg({
@@ -11,211 +11,131 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-    // HASH DEFAULT PASSWORD FOR SEED USERS
-    const passwordHash = await bcrypt.hash('Password123!', 10);
+    // PASSWORD HASH FOR DEMO ACCOUNTS
+    const passwordHash = await bcrypt.hash('demo123', 10);
 
-    // SEED USERS
-    const user1 = await prisma.user.upsert({
-        where: { email: 'john@example.com' },
-        update: {},
-        create: {
-            name: 'John Doe',
-            email: 'john@example.com',
+    // CLEAN EXISTING DATA
+    await prisma.product.deleteMany({});
+    await prisma.staffMember.deleteMany({});
+    await prisma.role.deleteMany({});
+    await prisma.branch.deleteMany({});
+    await prisma.organization.deleteMany({});
+    await prisma.user.deleteMany({});
+
+    // 1. CREATE OWNER USER
+    const owner = await prisma.user.create({
+        data: {
+            name: 'Nadia Rahman',
+            email: 'owner@branchwork.demo',
             password: passwordHash,
             status: UserStatus.ACTIVE,
             isVerified: true,
         },
     });
 
-    const user2 = await prisma.user.upsert({
-        where: { email: 'jane@example.com' },
-        update: {},
-        create: {
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            password: passwordHash,
-            status: UserStatus.ACTIVE,
-            isVerified: true,
+    // 2. CREATE ORGANIZATION
+    const org = await prisma.organization.create({
+        data: {
+            name: 'Padma Retail',
+            ownerId: owner.id,
         },
     });
 
-    const user3 = await prisma.user.upsert({
-        where: { email: 'bob@example.com' },
-        update: {},
-        create: {
-            name: 'Bob Johnson',
-            email: 'bob@example.com',
-            password: passwordHash,
-            status: UserStatus.ACTIVE,
-            isVerified: true,
+    // 3. CREATE BRANCHES
+    const dhanmondi = await prisma.branch.create({
+        data: {
+            name: 'Dhanmondi',
+            city: 'Dhaka',
+            organizationId: org.id,
         },
     });
 
-    // SEED PROJECT 1
-    let project1 = await prisma.project.findFirst({
-        where: { name: 'Website Redesign', ownerId: user1.id },
+    const gulshan = await prisma.branch.create({
+        data: {
+            name: 'Gulshan',
+            city: 'Dhaka',
+            organizationId: org.id,
+        },
     });
 
-    if (!project1) {
-        project1 = await prisma.project.create({
-            data: {
-                name: 'Website Redesign',
-                description: 'Full redesign of the client-facing marketing website and portal.',
-                ownerId: user1.id,
-                members: {
-                    create: [
-                        { userId: user1.id },
-                        { userId: user2.id },
-                        { userId: user3.id },
-                    ],
-                },
-            },
-        });
-
-        // SEED TASKS FOR PROJECT 1
-        const now = new Date();
-        const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-        const inThreeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-        const inFiveDays = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
-        const inSevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-        await prisma.task.createMany({
-            data: [
-                {
-                    title: 'Design Landing Page Mockup',
-                    description: 'Finalize Figma design tokens, layouts, and typography.',
-                    status: TaskStatus.DONE,
-                    priority: TaskPriority.HIGH,
-                    projectId: project1.id,
-                    assigneeId: user2.id,
-                    dueDate: twoDaysAgo,
-                },
-                {
-                    title: 'Implement Authentication Flow',
-                    description: 'Build JWT and OTP login UI and hook up with NestJS backend.',
-                    status: TaskStatus.IN_PROGRESS,
-                    priority: TaskPriority.HIGH,
-                    projectId: project1.id,
-                    assigneeId: user3.id,
-                    dueDate: inThreeDays,
-                },
-                {
-                    title: 'Set up CI/CD Pipeline',
-                    description: 'Configure GitHub Actions for automated lint, build, and test steps.',
-                    status: TaskStatus.TODO,
-                    priority: TaskPriority.MEDIUM,
-                    projectId: project1.id,
-                    assigneeId: user1.id,
-                    dueDate: inFiveDays,
-                },
-                {
-                    title: 'Write User Documentation',
-                    description: 'Create user guides and onboarding documentation.',
-                    status: TaskStatus.TODO,
-                    priority: TaskPriority.LOW,
-                    projectId: project1.id,
-                    assigneeId: user2.id,
-                    dueDate: inSevenDays,
-                },
+    // 4. CREATE ROLES
+    const branchManagerRole = await prisma.role.create({
+        data: {
+            name: 'Branch manager',
+            organizationId: org.id,
+            permissions: [
+                'MANAGE_STAFF',
+                'VIEW_PRODUCTS',
+                'ORGANIZE_PRODUCTS',
             ],
-        });
-    }
-
-    // SEED PROJECT 2
-    let project2 = await prisma.project.findFirst({
-        where: { name: 'Mobile App API Integration', ownerId: user2.id },
+        },
     });
 
-    if (!project2) {
-        project2 = await prisma.project.create({
-            data: {
-                name: 'Mobile App API Integration',
-                description: 'REST API endpoints and webhook integration for mobile applications.',
-                ownerId: user2.id,
-                members: {
-                    create: [
-                        { userId: user2.id },
-                        { userId: user1.id },
-                    ],
-                },
-            },
-        });
-
-        const inFourDays = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
-        const inTenDays = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
-
-        await prisma.task.createMany({
-            data: [
-                {
-                    title: 'Database Schema Architecture',
-                    description: 'Design PostgreSQL schema for mobile synchronization.',
-                    status: TaskStatus.DONE,
-                    priority: TaskPriority.HIGH,
-                    projectId: project2.id,
-                    assigneeId: user2.id,
-                },
-                {
-                    title: 'Push Notification Service',
-                    description: 'Integrate FCM and APNs for real-time mobile push notifications.',
-                    status: TaskStatus.IN_PROGRESS,
-                    priority: TaskPriority.MEDIUM,
-                    projectId: project2.id,
-                    assigneeId: user1.id,
-                    dueDate: inFourDays,
-                },
-                {
-                    title: 'App Store Submission Checklist',
-                    description: 'Prepare privacy policy, assets, and metadata for store review.',
-                    status: TaskStatus.TODO,
-                    priority: TaskPriority.LOW,
-                    projectId: project2.id,
-                    assigneeId: null,
-                    dueDate: inTenDays,
-                },
-            ],
-        });
-    }
-
-    // SEED PROJECT 3
-    let project3 = await prisma.project.findFirst({
-        where: { name: 'Internal Analytics Dashboard', ownerId: user3.id },
+    const stockClerkRole = await prisma.role.create({
+        data: {
+            name: 'Stock clerk',
+            organizationId: org.id,
+            permissions: ['VIEW_PRODUCTS', 'ORGANIZE_PRODUCTS'],
+        },
     });
 
-    if (!project3) {
-        project3 = await prisma.project.create({
-            data: {
-                name: 'Internal Analytics Dashboard',
-                description: 'Real-time metrics dashboard for internal operations.',
-                ownerId: user3.id,
-                members: {
-                    create: [{ userId: user3.id }],
+    // 5. CREATE STAFF USER (STOCK CLERK)
+    await prisma.user.create({
+        data: {
+            name: 'Demo Clerk',
+            email: 'clerk@branchwork.demo',
+            password: passwordHash,
+            status: UserStatus.ACTIVE,
+            isVerified: true,
+            staffProfile: {
+                create: {
+                    organizationId: org.id,
+                    branchId: gulshan.id,
+                    roleId: stockClerkRole.id,
                 },
             },
-        });
+        },
+    });
 
-        await prisma.task.create({
-            data: {
-                title: 'Integrate Event Tracking',
-                description: 'Track customer funnel drop-offs and system telemetry.',
-                status: TaskStatus.DONE,
-                priority: TaskPriority.MEDIUM,
-                projectId: project3.id,
-                assigneeId: user3.id,
+    // 6. CREATE PRODUCTS
+    await prisma.product.createMany({
+        data: [
+            {
+                name: 'Mustard oil 1L',
+                sku: 'OIL-001',
+                category: 'Grocery',
+                price: 420,
+                stock: 48,
+                organizationId: org.id,
+                branchId: dhanmondi.id,
             },
-        });
-    }
+            {
+                name: 'Basmati rice 5kg',
+                sku: 'RIC-005',
+                category: 'Grocery',
+                price: 890,
+                stock: 6,
+                organizationId: org.id,
+                branchId: gulshan.id,
+            },
+            {
+                name: 'Steel flask',
+                sku: 'HOM-212',
+                category: 'Home',
+                price: 1250,
+                stock: 22,
+                organizationId: org.id,
+                branchId: gulshan.id,
+            },
+        ],
+    });
 
-    // LOG SUCCESS SUMMARY
-    console.log('Seeding completed successfully!');
-    console.log('Test Accounts (Password: Password123!):');
-    console.log('  - john@example.com (Owner of Project 1, Member of Project 2)');
-    console.log('  - jane@example.com (Owner of Project 2, Member of Project 1)');
-    console.log('  - bob@example.com  (Owner of Project 3, Member of Project 1)');
+    console.log('Seed completed successfully.');
 }
 
 main()
     .catch((e) => {
-        console.error('Seeding failed:', e);
+        console.error(e);
         process.exit(1);
     })
     .finally(async () => {
