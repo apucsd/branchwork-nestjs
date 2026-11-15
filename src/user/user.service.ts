@@ -152,7 +152,7 @@ export class UserService {
             data: { status: UserStatus.DELETED },
         });
 
-        return { message: 'User account deleted successfully' };
+        return null;
     }
 
     async deleteMyAccount(userId: string) {
