@@ -82,11 +82,6 @@ async function bootstrap() {
         .addBearerAuth()
         .build();
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document, {
-        swaggerOptions: {
-            persistAuthorization: true,
-        },
-    });
     SwaggerModule.setup('api/doc', app, document, {
         swaggerOptions: {
             persistAuthorization: true,
