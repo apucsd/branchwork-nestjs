@@ -12,6 +12,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -25,6 +26,8 @@ import {
 } from 'src/common/decorators/permissions.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 
+@ApiTags('Products')
+@ApiBearerAuth()
 @Controller('products')
 @UseGuards(AuthGuard, PermissionsGuard)
 export class ProductController {

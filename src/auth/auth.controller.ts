@@ -9,19 +9,17 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
 import { RegisterOrgDto } from './dto/register-org.dto';
 import { LoginDto } from './dto/login.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
-import { ForgotPasswordDto } from './dto/forget-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthGuard } from 'src/common/guards/auth/auth.guard';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { ConfigService } from '@nestjs/config';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
     constructor(
@@ -48,21 +46,6 @@ export class AuthController {
         return rest;
     }
 
-    @Get('/me')
-    @UseGuards(AuthGuard)
-    @ResponseMessage('Current user retrieved successfully')
-    async getMe(@CurrentUser('id') userId: string) {
-        return await this.authService.getUserContext(userId);
-    }
-
-    @Post('/register')
-    @ResponseMessage(
-        'User registered successfully. Please check your email for verification.',
-    )
-    async register(@Body() registerDto: RegisterDto) {
-        return await this.authService.register(registerDto);
-    }
-
     @Post('/login')
     @ResponseMessage('User logged in successfully')
     async login(
@@ -76,34 +59,17 @@ export class AuthController {
             httpOnly: true,
             secure: this.configService.get('NODE_ENV') === 'production',
             sameSite: 'strict',
-            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 DAYS
+            maxAge: 30 * 24 * 60 * 60 * 1000,
         });
 
         return rest;
     }
 
-    @Post('/verify-otp')
-    @ResponseMessage('OTP verified successfully')
-    async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-        return await this.authService.verifyOtp(verifyOtpDto);
-    }
-
-    @Post('/resend-registration-otp')
-    @ResponseMessage('OTP sent successfully. Please check your email.')
-    async resendRegistrationOtp(@Body() body: ForgotPasswordDto) {
-        return await this.authService.resendRegistrationOtp(body.email);
-    }
-
-    @Post('/forgot-password')
-    @ResponseMessage('Please check your email for reset password otp')
-    async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-        return await this.authService.forgotPassword(forgotPasswordDto);
-    }
-
-    @Post('/reset-password')
-    @ResponseMessage('Password reset successfully')
-    async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-        return await this.authService.resetPassword(resetPasswordDto);
+    @Get('/me')
+    @UseGuards(AuthGuard)
+    @ResponseMessage('Current user retrieved successfully')
+    async getMe(@CurrentUser('id') userId: string) {
+        return await this.authService.getUserContext(userId);
     }
 
     @Post('/change-password')

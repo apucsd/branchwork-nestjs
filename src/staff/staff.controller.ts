@@ -10,6 +10,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { StaffService } from './staff.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
@@ -18,6 +19,8 @@ import { PermissionsGuard } from 'src/common/guards/permissions.guard';
 import { RequirePermissions } from 'src/common/decorators/permissions.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 
+@ApiTags('Staff')
+@ApiBearerAuth()
 @Controller('staff')
 @UseGuards(AuthGuard, PermissionsGuard)
 @RequirePermissions('MANAGE_STAFF')

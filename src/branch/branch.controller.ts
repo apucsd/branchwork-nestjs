@@ -10,6 +10,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BranchService } from './branch.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
@@ -18,6 +19,8 @@ import { PermissionsGuard } from 'src/common/guards/permissions.guard';
 import { RequireOwner } from 'src/common/decorators/permissions.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 
+@ApiTags('Branches')
+@ApiBearerAuth()
 @Controller('branches')
 @UseGuards(AuthGuard, PermissionsGuard)
 export class BranchController {

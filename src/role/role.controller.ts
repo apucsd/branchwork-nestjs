@@ -10,6 +10,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -18,6 +19,8 @@ import { PermissionsGuard } from 'src/common/guards/permissions.guard';
 import { RequireOwner } from 'src/common/decorators/permissions.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 
+@ApiTags('Roles')
+@ApiBearerAuth()
 @Controller('roles')
 @UseGuards(AuthGuard, PermissionsGuard)
 export class RoleController {
