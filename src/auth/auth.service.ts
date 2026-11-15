@@ -1,4 +1,5 @@
 import {
+    ConflictException,
     Injectable,
     NotFoundException,
     UnauthorizedException,
@@ -9,8 +10,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserStatus, OtpType } from 'generated/prisma/client';
 import { generateOtp, generateOtpExpiry } from 'src/common/utils/otp.util';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 import { RegisterDto } from './dto/register.dto';
+import { RegisterOrgDto } from './dto/register-org.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forget-password.dto';
@@ -30,7 +33,120 @@ export class AuthService {
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
         private readonly mailService: MailService,
+        private readonly prisma: PrismaService,
     ) {}
+
+    async registerOrg(dto: RegisterOrgDto) {
+        const existing = await this.userService.findUserByEmail(dto.email);
+        if (existing) {
+            throw new ConflictException('This email is already registered');
+        }
+
+        const saltOrRounds =
+            this.configService.get<number>('BCRYPT_SALT_ROUNDS') || 10;
+        const hashedPassword = await bcrypt.hash(
+            dto.password,
+            Number(saltOrRounds),
+        );
+
+        // 1. CREATE OWNER USER
+        const user = await this.prisma.user.create({
+            data: {
+                name: dto.yourName,
+                email: dto.email,
+                password: hashedPassword,
+                status: UserStatus.ACTIVE,
+                isVerified: true,
+            },
+        });
+
+        // 2. CREATE ORGANIZATION
+        const org = await this.prisma.organization.create({
+            data: {
+                name: dto.organizationName,
+                ownerId: user.id,
+            },
+        });
+
+        // 3. CREATE DEFAULT ROLES
+        await this.prisma.role.createMany({
+            data: [
+                {
+                    name: 'Branch manager',
+                    organizationId: org.id,
+                    permissions: [
+                        'MANAGE_STAFF',
+                        'VIEW_PRODUCTS',
+                        'ORGANIZE_PRODUCTS',
+                    ],
+                },
+                {
+                    name: 'Stock clerk',
+                    organizationId: org.id,
+                    permissions: ['VIEW_PRODUCTS', 'ORGANIZE_PRODUCTS'],
+                },
+            ],
+        });
+
+        const tokens = await this.generateUserTokens(user.id, user.email);
+        const userContext = await this.getUserContext(user.id);
+
+        return {
+            ...tokens,
+            user: userContext,
+        };
+    }
+
+    async getUserContext(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                ownedOrganizations: true,
+                staffProfile: {
+                    include: {
+                        organization: true,
+                        branch: true,
+                        role: true,
+                    },
+                },
+            },
+        });
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        const isOwner = user.ownedOrganizations.length > 0;
+        const organization = isOwner
+            ? user.ownedOrganizations[0]
+            : user.staffProfile?.organization;
+
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            isOwner,
+            organization: organization
+                ? { id: organization.id, name: organization.name }
+                : null,
+            branch: user.staffProfile?.branch
+                ? {
+                      id: user.staffProfile.branch.id,
+                      name: user.staffProfile.branch.name,
+                      city: user.staffProfile.branch.city,
+                  }
+                : null,
+            role: isOwner
+                ? { id: 'owner', name: 'Owner', permissions: ['*'] }
+                : user.staffProfile?.role
+                  ? {
+                        id: user.staffProfile.role.id,
+                        name: user.staffProfile.role.name,
+                        permissions: user.staffProfile.role.permissions,
+                    }
+                  : null,
+        };
+    }
 
     async register(userDto: RegisterDto) {
         const saltOrRounds =
@@ -138,11 +254,11 @@ export class AuthService {
             });
         }
         const tokens = await this.generateUserTokens(user.id, user.email);
+        const userContext = await this.getUserContext(user.id);
 
         return {
-            id: user.id,
-            email: user.email,
             ...tokens,
+            user: userContext,
         };
     }
 

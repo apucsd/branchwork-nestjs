@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Get,
     Post,
     Req,
     Res,
@@ -10,6 +11,7 @@ import {
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterOrgDto } from './dto/register-org.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forget-password.dto';
@@ -26,6 +28,32 @@ export class AuthController {
         private readonly authService: AuthService,
         private readonly configService: ConfigService,
     ) {}
+
+    @Post('/register-org')
+    @ResponseMessage('Organization registered successfully')
+    async registerOrg(
+        @Body() dto: RegisterOrgDto,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const { refreshToken, ...rest } =
+            await this.authService.registerOrg(dto);
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: this.configService.get('NODE_ENV') === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+
+        return rest;
+    }
+
+    @Get('/me')
+    @UseGuards(AuthGuard)
+    @ResponseMessage('Current user retrieved successfully')
+    async getMe(@CurrentUser('id') userId: string) {
+        return await this.authService.getUserContext(userId);
+    }
 
     @Post('/register')
     @ResponseMessage(
