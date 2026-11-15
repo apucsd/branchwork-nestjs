@@ -4,6 +4,14 @@ A production-grade, scalable RESTful API built with **NestJS 11**, **PostgreSQL*
 
 ---
 
+## 🌐 Live Deployment & Interactive API Documentation
+
+* 🚀 **Live Production API:** `https://branchwork.centralindia.cloudapp.azure.com`
+* 📖 **Live Interactive API Documentation (Swagger UI):** [https://branchwork.centralindia.cloudapp.azure.com/api/doc](https://branchwork.centralindia.cloudapp.azure.com/api/doc)
+* 💻 **Local Documentation:** `http://localhost:4000/api/doc` (or `http://localhost:4000/api/docs`)
+
+---
+
 ## 🔑 Evaluation & Demo Accounts
 
 Pre-seeded evaluation accounts matching the frontend prototype specifications:
@@ -176,7 +184,7 @@ All responses conform to the global envelope:
 * **Security & Auth:** JWT, Passport, Bcrypt password hashing
 * **Rate Limiting:** `@nestjs/throttler`
 * **Validation:** `class-validator`, `class-transformer`
-* **Documentation:** Swagger / OpenAPI UI (`/api/docs`)
+* **Documentation:** Swagger / OpenAPI UI ([Live API Docs](https://branchwork.centralindia.cloudapp.azure.com/api/doc) | Local: `http://localhost:4000/api/doc`)
 
 ---
 
@@ -236,4 +244,15 @@ yarn build
 yarn start:prod
 ```
 
-Swagger API documentation is available at `http://localhost:4000/api/docs`.
+### 6. Automated QA Test Suite
+Execute the comprehensive 33-test QA test suite covering all endpoints, permissions, and IDOR branch scoping defenses:
+```bash
+node test-qa.js
+```
+
+---
+
+## 📖 API Documentation Access
+
+* **Live Cloud Deployment:** [https://branchwork.centralindia.cloudapp.azure.com/api/doc](https://branchwork.centralindia.cloudapp.azure.com/api/doc)
+* **Local Instance:** [http://localhost:4000/api/doc](http://localhost:4000/api/doc) (or `/api/docs`)
