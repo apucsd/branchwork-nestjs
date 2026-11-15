@@ -1,115 +1,197 @@
-# Project & Task Management System — Backend API
+# Branchwork — Multi-Branch Organization Console API
 
-A production-grade, scalable RESTful API built with **NestJS**, **PostgreSQL**, and **Prisma ORM** for the Mid-Level Assessment.
-
----
-
-## 🌐 Live Deployments
-
-| Component | Platform / Host | Live URL |
-| :--- | :--- | :--- |
-| **Frontend Application** | Vercel | [https://todo-task-frontend-three.vercel.app](https://todo-task-frontend-three.vercel.app/) |
-| **Backend REST API** | Azure VM (Ubuntu 22.04 LTS) | [https://zmc-taskflow.centralindia.cloudapp.azure.com](https://zmc-taskflow.centralindia.cloudapp.azure.com) |
-| **Interactive Swagger Docs** | Azure VM | [https://zmc-taskflow.centralindia.cloudapp.azure.com/api/docs](https://zmc-taskflow.centralindia.cloudapp.azure.com/api/docs) |
-| **Base API Endpoint** | Azure VM | `https://zmc-taskflow.centralindia.cloudapp.azure.com/api/v1` |
-
-> [!NOTE]
-> **Cloud Infrastructure Note**: The backend is hosted on a self-managed **Azure Linux Virtual Machine (Student Plan)** running Ubuntu 22.04 LTS, configured with an **Nginx** reverse proxy, SSL termination, and **PM2** process management for 24/7 high availability with zero serverless cold starts.
+A production-grade, scalable RESTful API built with **NestJS 11**, **PostgreSQL**, and **Prisma ORM** powering **Branchwork** — a multi-branch organization console for managing branches, custom roles with permission checklists, staff assignments, and branch-scoped inventory.
 
 ---
 
-## 🔑 Evaluation & Test Accounts
+## 🔑 Evaluation & Demo Accounts
 
-You can log in directly with the primary demo account to immediately explore active projects, tasks, and metrics:
+Pre-seeded evaluation accounts matching the frontend prototype specifications:
 
-### 🌟 Primary Account (Recommended — Rich Data)
-- **Email:** `apusutradhar77@gmail.com`
-- **Password:** `12345678`
-- **Context:** Primary test account populated with multiple live projects, workspaces, members, and tasks.
+### 🌟 1. Organization Owner (Full System Access)
+* **Organization:** `Padma Retail`
+* **Name:** Nadia Rahman
+* **Email:** `owner@branchwork.demo`
+* **Password:** `demo123`
+* **Capabilities:** Full bypass access across all branches, roles, staff, and products. Can create/delete branches, define custom roles, invite staff, create/delete products, and filter products across all branches.
 
----
-
-### 👥 Additional Pre-Seeded Collaboration Accounts
-Use these accounts to test cross-user collaboration, permissions, and IDOR prevention:
-
-**Default Password for below accounts:** `Password123!`
-
-| Email | User Name | Role & Evaluation Context |
-| :--- | :--- | :--- |
-| `john@example.com` | John Doe | **Owner** of *Website Redesign*, Member of *Mobile App* |
-| `jane@example.com` | Jane Smith | **Owner** of *Mobile App*, Member of *Website Redesign* |
-| `bob@example.com` | Bob Johnson | **Owner** of *Internal Analytics*, Member of *Website Redesign* |
+### 👥 2. Staff Member (Branch-Scoped Role)
+* **Branch:** `Gulshan` (Dhaka)
+* **Role:** `Stock clerk`
+* **Permissions:** `VIEW_PRODUCTS`, `ORGANIZE_PRODUCTS`
+* **Name:** Demo Clerk
+* **Email:** `clerk@branchwork.demo`
+* **Password:** `demo123`
+* **Capabilities:** View products strictly restricted to the **Gulshan** branch. Can organize products (update category, adjust stock count, or transfer branch). Blocked from viewing other branches or deleting products.
 
 ---
 
 ## ⚡ Architecture & Business Highlights
 
-### 1. 🛡️ Strict Authorization & IDOR Prevention
-- **URL Tampering Protection**: Access to projects and tasks is strictly scoped to verified memberships. Non-members attempting to view, edit, or delete entities by guessing or changing UUIDs in the URL are immediately rejected with **`403 Forbidden`**.
-- **Owner vs. Member Permissions**: Only project owners can edit project details, delete projects, or remove members. Regular members are restricted to task collaboration.
-- **Assignment Validation**: Tasks can only be assigned to registered users who are confirmed members of that specific project.
+### 1. 🛡️ Two-Layer Authorization & IDOR Prevention
+* **Layer 1: Action Permissions**: Evaluated using `@RequirePermissions(...)` against the user's role permission checklist (`MANAGE_STAFF`, `VIEW_PRODUCTS`, `ORGANIZE_PRODUCTS`).
+* **Layer 2: Multi-Branch Data Scoping**: Staff queries are strictly locked down to `where: { branchId: user.branchId }`. Non-permitted or cross-branch mutations are rejected with `403 Forbidden`.
+* **Owner Privilege Bypass**: The organization owner bypasses permission checklists with system super-admin rights while preserving organization boundaries.
 
-### 2. 🔍 Advanced QueryBuilder
-- Full support for search, filtering, sorting, and pagination across tasks and projects:
-  - **Search**: Case-insensitive text search across `title` and `description`.
-  - **Filtering**: Multi-parameter filters for `status`, `priority`, `assigneeId`, and `projectId`.
-  - **Sorting**: Flexible sorting parameters (e.g., `-createdAt`, `dueDate`, `priority`).
-  - **Pagination**: Structured pagination metadata returning `{ total, page, limit, totalPages }`.
+### 2. 🏬 Branch & Inventory Organization
+* **Owner Controls**: Owners create and delete products and branches.
+* **Staff Organizing**: Staff with `ORGANIZE_PRODUCTS` permission can:
+  * Re-categorize items (e.g. *Grocery*, *Home*).
+  * Update inventory stock levels.
+  * Transfer products between branches.
 
-### 3. 📊 Dashboard Overview Metrics
-- High-performance overview endpoint (`GET /api/v1/dashboard/overview`) delivering aggregated metrics in a single query:
-  - **Projects**: Total accessible projects, active projects (with pending tasks).
-  - **Tasks**: Total tasks, completed, in-progress, todo, and high-priority items.
+### 3. 🔍 Search, Filtering & Data Export
+* Multi-parameter search across `name`, `sku`, and `category`.
+* Branch filtering for owners (`?branchId=...`) and category filtering (`?category=...`).
+* Live CSV data export endpoint (`GET /api/v1/products/export`).
 
-### 4. 🗄️ Relational Database & ORM Design
-- PostgreSQL database hosted on Neon connected via Prisma ORM using `@prisma/adapter-pg`.
-- Explicit `ProjectMember` junction model with `@@unique([projectId, userId])` and cascade deletion rules to maintain referential integrity.
-- Migration history tracked in `prisma/migrations` with 0 drift.
+---
 
-#### 📐 Entity Relationship Diagram (ERD)
-- **Interactive Diagram:** [View on Lucidchart](https://lucid.app/lucidchart/dacf8163-6912-4131-b077-6915285da554/view)
+## 📐 Entity Relationship Architecture
 
-<p align="center">
-  <a href="https://lucid.app/lucidchart/dacf8163-6912-4131-b077-6915285da554/view" target="_blank">
-    <img src="https://i.ibb.co.com/7JnFn146/Task-Management-2.png" alt="Database ER Diagram" width="850" />
-  </a>
-</p>
+```mermaid
+erDiagram
+    ORGANIZATION ||--o{ BRANCH : "has branches"
+    ORGANIZATION ||--o{ ROLE : "defines roles"
+    ORGANIZATION ||--o{ STAFF_MEMBER : "employs staff"
+    ORGANIZATION ||--o{ PRODUCT : "owns inventory"
+    ORGANIZATION }o--|| USER : "owned by"
+    BRANCH ||--o{ STAFF_MEMBER : "assigned staff"
+    BRANCH ||--o{ PRODUCT : "stocks products"
+    ROLE ||--o{ STAFF_MEMBER : "grants permissions"
+    USER ||--o| STAFF_MEMBER : "staff profile"
 
-### 5. 🌐 Production-Ready Standards
-- **Global Response Envelope**: All API endpoints return a standardized format:
-  `{ success: boolean, message: string, data: T, meta?: PaginationMeta, timestamp: string }`
-- **Global Exception Filter**: Catches NestJS exceptions and Prisma database errors, providing structured JSON responses and error logging.
-- **Resilient Email Delivery**: Fire-and-forget asynchronous OTP email delivery with console fallback to prevent SMTP latency from blocking HTTP requests.
-- **Cross-Region Network Optimization**: Enforces IPv4 resolution (`net.setDefaultAutoSelectFamily(false)`) to prevent cross-continental TCP timeouts.
+    ORGANIZATION {
+        string id PK
+        string name
+        string ownerId FK
+    }
+    BRANCH {
+        string id PK
+        string name
+        string city
+        string organizationId FK
+    }
+    ROLE {
+        string id PK
+        string name
+        string[] permissions
+        string organizationId FK
+    }
+    STAFF_MEMBER {
+        string id PK
+        string userId FK
+        string branchId FK
+        string roleId FK
+        string organizationId FK
+    }
+    PRODUCT {
+        string id PK
+        string name
+        string sku
+        string category
+        float price
+        int stock
+        string branchId FK
+        string organizationId FK
+    }
+    USER {
+        string id PK
+        string name
+        string email
+        string password
+        string status
+        boolean isVerified
+    }
+```
+
+---
+
+## 📡 REST API Reference
+
+All responses conform to the global envelope:
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... },
+  "timestamp": "2026-11-15T09:00:00.000Z"
+}
+```
+
+### 1. Authentication & Organization
+| Method | Endpoint | Access Level | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register-org` | Public | Register owner & provision organization |
+| `POST` | `/api/v1/auth/login` | Public | Log in owner or staff, resolves active branch & role |
+| `GET` | `/api/v1/auth/me` | Authenticated | Retrieve session context, branch, and permissions |
+| `POST` | `/api/v1/auth/refresh-token` | Authenticated | Refresh JWT access token |
+
+### 2. Branch Management
+| Method | Endpoint | Access Level | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/branches` | Authenticated | List branches with `staffCount` & `productCount` |
+| `GET` | `/api/v1/branches/:id` | Authenticated | Get single branch details |
+| `POST` | `/api/v1/branches` | Owner Only | Create a new branch (`name`, `city`) |
+| `PATCH` | `/api/v1/branches/:id` | Owner Only | Update branch details |
+| `DELETE` | `/api/v1/branches/:id` | Owner Only | Delete branch |
+
+### 3. Roles & Permissions Checklist
+| Method | Endpoint | Access Level | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/roles` | Authenticated | List roles with `staffCount` and permission tags |
+| `GET` | `/api/v1/roles/:id` | Authenticated | Get single role details |
+| `POST` | `/api/v1/roles` | Owner Only | Create role with permission checklist |
+| `PATCH` | `/api/v1/roles/:id` | Owner Only | Update role name or permissions checklist |
+| `DELETE` | `/api/v1/roles/:id` | Owner Only | Delete role (prevented if staff are assigned) |
+
+### 4. Staff Management
+| Method | Endpoint | Access Level | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/staff` | `MANAGE_STAFF` | List staff with branch and role assignments |
+| `GET` | `/api/v1/staff/:id` | `MANAGE_STAFF` | Get single staff member details |
+| `POST` | `/api/v1/staff` | `MANAGE_STAFF` | Invite staff member to a branch with a role |
+| `PATCH` | `/api/v1/staff/:id` | `MANAGE_STAFF` | Reassign staff branch or role |
+| `DELETE` | `/api/v1/staff/:id` | `MANAGE_STAFF` | Remove staff from organization |
+
+### 5. Product Management & Organizing
+| Method | Endpoint | Access Level | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/products` | `VIEW_PRODUCTS` | List products (branch-scoped for staff) with search & filter |
+| `GET` | `/api/v1/products/export` | `VIEW_PRODUCTS` | Export products to CSV |
+| `GET` | `/api/v1/products/:id` | `VIEW_PRODUCTS` | Get product details |
+| `POST` | `/api/v1/products` | Owner Only | Create new product |
+| `PATCH` | `/api/v1/products/:id/organize` | `ORGANIZE_PRODUCTS` | Staff organize product (category, stock, branch transfer) |
+| `PATCH` | `/api/v1/products/:id` | Owner Only | Full product update |
+| `DELETE` | `/api/v1/products/:id` | Owner Only | Delete product |
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Backend Framework:** NestJS 11
-- **Language:** TypeScript 5
-- **Database:** PostgreSQL (Neon Serverless)
-- **ORM:** Prisma 7 (`@prisma/adapter-pg`)
-- **Authentication:** JWT, Passport, Bcrypt password hashing
-- **Security & Rate Limiting:** `@nestjs/throttler`, CORS whitelist, HTTP-only cookie support
-- **Email Service:** Nodemailer, Handlebars
-- **Validation:** `class-validator`, `class-transformer`
-- **API Documentation:** Swagger / OpenAPI UI
+* **Framework:** NestJS 11
+* **Language:** TypeScript 5
+* **Database:** PostgreSQL (Neon Serverless)
+* **ORM:** Prisma 7 (`@prisma/adapter-pg`)
+* **Security & Auth:** JWT, Passport, Bcrypt password hashing
+* **Rate Limiting:** `@nestjs/throttler`
+* **Validation:** `class-validator`, `class-transformer`
+* **Documentation:** Swagger / OpenAPI UI (`/api/docs`)
 
 ---
 
 ## 🚀 Local Development Setup
 
 ### 1. Prerequisites
-- **Node.js**: `v20.x` or higher
-- **Package Manager**: `yarn`
-- **PostgreSQL**: Local instance or Cloud URI (Neon, Supabase)
+* **Node.js**: `v20.x` or higher
+* **Package Manager**: `yarn`
+* **PostgreSQL**: Local instance or Neon Cloud URI
 
 ### 2. Installation
 ```bash
 # Clone the repository
-git clone https://github.com/apucsd/task-management-backend.git
-cd task-management-backend
+git clone https://github.com/apucsd/branchwork-nestjs.git
+cd branchwork-nestjs
 
 # Install dependencies
 yarn install
@@ -118,73 +200,40 @@ yarn install
 ### 3. Environment Configuration
 Create a `.env` file in the root directory:
 ```env
-NODE_ENV=development
 PORT=4000
+NODE_ENV=development
 CLIENT_URL=http://localhost:3000
 
 # DATABASE
-DATABASE_URL="postgresql://user:password@localhost:5432/task_management?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/branchwork?schema=public"
 
-# AUTHENTICATION
-JWT_SECRET="your-super-secret-jwt-key"
+# AUTH
+JWT_SECRET="branchwork-jwt-secret-key"
 BCRYPT_SALT_ROUNDS=10
 JWT_ACCESS_TOKEN_EXPIRES_IN="7d"
 JWT_REFRESH_TOKEN_EXPIRES_IN="30d"
-
-# SMTP EMAIL (Optional - OTP is also printed in server logs)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
 ```
 
-### 4. Database Migrations & Seeding
+### 4. Database Setup & Seeding
 ```bash
 # Generate Prisma Client
 yarn generate
 
-# Run database migrations
-yarn migrate
+# Push Schema to Database
+yarn prisma db push
 
-# Seed database with sample test accounts, projects, and tasks
+# Seed Demo Accounts and Products
 yarn db:seed
 ```
 
-### 5. Running the Application
+### 5. Run the Application
 ```bash
-# Start in development mode (with hot-reload)
+# Development mode with hot-reload
 yarn dev
 
-# Compile production bundle
+# Production build & start
 yarn build
-
-# Start production server
 yarn start:prod
 ```
 
----
-
-## 🧪 Testing & Code Quality
-
-```bash
-# Run ESLint validation
-yarn lint
-
-# Run Unit tests
-yarn test
-
-# Run E2E tests
-yarn test:e2e
-```
-
----
-
-## 📖 API Documentation Endpoints
-
-When running locally:
-- **Interactive Swagger UI:** `http://localhost:4000/api/docs`
-- **Base API Path:** `http://localhost:4000/api/v1`
-
-When testing the live Azure server:
-- **Interactive Swagger UI:** `https://zmc-taskflow.centralindia.cloudapp.azure.com/api/docs`
-- **Base API Path:** `https://zmc-taskflow.centralindia.cloudapp.azure.com/api/v1`
+Swagger API documentation is available at `http://localhost:4000/api/docs`.
