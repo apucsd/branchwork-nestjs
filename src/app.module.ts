@@ -9,6 +9,7 @@ import { MailModule } from './mail/mail.module';
 import { BranchModule } from './branch/branch.module';
 import { RoleModule } from './role/role.module';
 import { StaffModule } from './staff/staff.module';
+import { ProductModule } from './product/product.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -31,6 +32,7 @@ import { throttlerAsyncConfig } from './config/throttler.config';
         BranchModule,
         RoleModule,
         StaffModule,
+        ProductModule,
     ],
     controllers: [AppController],
     providers: [
