@@ -1,15 +1,11 @@
-import {
-    BadRequestException,
-    ConflictException,
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 import { UserStatus } from 'generated/prisma/enums';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { AppError } from 'src/common/errors/app-error';
 
 @Injectable()
 export class StaffService {
@@ -93,7 +89,7 @@ export class StaffService {
         });
 
         if (!staff) {
-            throw new NotFoundException('Staff member not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Staff member not found');
         }
 
         return {
@@ -115,7 +111,10 @@ export class StaffService {
             where: { id: dto.branchId, organizationId },
         });
         if (!branch) {
-            throw new BadRequestException('Branch not found in this organization');
+            throw new AppError(
+                HttpStatus.BAD_REQUEST,
+                'Branch not found in this organization',
+            );
         }
 
         // VERIFY ROLE
@@ -123,7 +122,10 @@ export class StaffService {
             where: { id: dto.roleId, organizationId },
         });
         if (!role) {
-            throw new BadRequestException('Role not found in this organization');
+            throw new AppError(
+                HttpStatus.BAD_REQUEST,
+                'Role not found in this organization',
+            );
         }
 
         // CHECK IF USER EXISTS
@@ -136,7 +138,8 @@ export class StaffService {
                 where: { userId: user.id },
             });
             if (existingStaff) {
-                throw new ConflictException(
+                throw new AppError(
+                    HttpStatus.CONFLICT,
                     'User is already assigned as staff in an organization',
                 );
             }
@@ -211,7 +214,7 @@ export class StaffService {
             where: { id, organizationId },
         });
         if (!staff) {
-            throw new NotFoundException('Staff member not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Staff member not found');
         }
 
         if (dto.branchId) {
@@ -219,7 +222,10 @@ export class StaffService {
                 where: { id: dto.branchId, organizationId },
             });
             if (!branch) {
-                throw new BadRequestException('Branch not found in this organization');
+                throw new AppError(
+                    HttpStatus.BAD_REQUEST,
+                    'Branch not found in this organization',
+                );
             }
         }
 
@@ -228,7 +234,10 @@ export class StaffService {
                 where: { id: dto.roleId, organizationId },
             });
             if (!role) {
-                throw new BadRequestException('Role not found in this organization');
+                throw new AppError(
+                    HttpStatus.BAD_REQUEST,
+                    'Role not found in this organization',
+                );
             }
         }
 
@@ -276,7 +285,7 @@ export class StaffService {
             where: { id, organizationId },
         });
         if (!staff) {
-            throw new NotFoundException('Staff member not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Staff member not found');
         }
 
         await this.prisma.staffMember.delete({

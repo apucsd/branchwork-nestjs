@@ -1,14 +1,10 @@
-import {
-    BadRequestException,
-    ForbiddenException,
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { OrganizeProductDto } from './dto/organize-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
+import { AppError } from 'src/common/errors/app-error';
 
 @Injectable()
 export class ProductService {
@@ -98,11 +94,12 @@ export class ProductService {
         });
 
         if (!product) {
-            throw new NotFoundException('Product not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Product not found');
         }
 
         if (!isOwner && product.branchId !== staffBranchId) {
-            throw new ForbiddenException(
+            throw new AppError(
+                HttpStatus.FORBIDDEN,
                 'You do not have access to products of this branch',
             );
         }
@@ -116,7 +113,10 @@ export class ProductService {
         });
 
         if (!branch) {
-            throw new BadRequestException('Branch not found in this organization');
+            throw new AppError(
+                HttpStatus.BAD_REQUEST,
+                'Branch not found in this organization',
+            );
         }
 
         return await this.prisma.product.create({
@@ -151,7 +151,7 @@ export class ProductService {
         });
 
         if (!product) {
-            throw new NotFoundException('Product not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Product not found');
         }
 
         if (dto.branchId) {
@@ -159,7 +159,10 @@ export class ProductService {
                 where: { id: dto.branchId, organizationId },
             });
             if (!branch) {
-                throw new BadRequestException('Branch not found in this organization');
+                throw new AppError(
+                    HttpStatus.BAD_REQUEST,
+                    'Branch not found in this organization',
+                );
             }
         }
 
@@ -197,11 +200,12 @@ export class ProductService {
         });
 
         if (!product) {
-            throw new NotFoundException('Product not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Product not found');
         }
 
         if (!isOwner && product.branchId !== staffBranchId) {
-            throw new ForbiddenException(
+            throw new AppError(
+                HttpStatus.FORBIDDEN,
                 'You can only organize products within your own branch',
             );
         }
@@ -211,7 +215,8 @@ export class ProductService {
                 where: { id: dto.branchId, organizationId },
             });
             if (!targetBranch) {
-                throw new BadRequestException(
+                throw new AppError(
+                    HttpStatus.BAD_REQUEST,
                     'Target branch not found in this organization',
                 );
             }
@@ -242,7 +247,7 @@ export class ProductService {
         });
 
         if (!product) {
-            throw new NotFoundException('Product not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Product not found');
         }
 
         await this.prisma.product.delete({

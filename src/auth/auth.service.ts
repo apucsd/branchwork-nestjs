@@ -1,9 +1,11 @@
 import {
     ConflictException,
+    HttpStatus,
     Injectable,
     NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
+import { AppError } from 'src/common/errors/app-error';
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -39,7 +41,10 @@ export class AuthService {
     async registerOrg(dto: RegisterOrgDto) {
         const existing = await this.userService.findUserByEmail(dto.email);
         if (existing) {
-            throw new ConflictException('This email is already registered');
+            throw new AppError(
+                HttpStatus.CONFLICT,
+                'This email is already registered',
+            );
         }
 
         const saltOrRounds =
@@ -113,7 +118,7 @@ export class AuthService {
         });
 
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'User not found');
         }
 
         const isOwner = user.ownedOrganizations.length > 0;
@@ -334,7 +339,7 @@ export class AuthService {
             forgotPasswordDto.email,
         );
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'User not found');
         }
 
         const otp = generateOtp();
@@ -378,7 +383,7 @@ export class AuthService {
 
         const user = await this.userService.findUserById(decodedToken.id);
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'User not found');
         }
 
         const saltOrRounds =
@@ -396,7 +401,7 @@ export class AuthService {
     async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
         const user = await this.userService.findUserByIdWithAuth(userId);
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'User not found');
         }
 
         if (!user.password) {
@@ -444,7 +449,7 @@ export class AuthService {
 
         const user = await this.userService.findUserById(decodedToken.id);
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'User not found');
         }
 
         const newAccessToken = await this.jwtService.signAsync(

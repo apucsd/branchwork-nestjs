@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
+import { AppError } from 'src/common/errors/app-error';
 
 @Injectable()
 export class BranchService {
@@ -47,7 +48,7 @@ export class BranchService {
         });
 
         if (!branch) {
-            throw new NotFoundException('Branch not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Branch not found');
         }
 
         return {
@@ -63,6 +64,21 @@ export class BranchService {
     }
 
     async createBranch(organizationId: string, dto: CreateBranchDto) {
+        // CHECK FOR DUPLICATE BRANCH NAME IN ORGANIZATION
+        const existing = await this.prisma.branch.findFirst({
+            where: {
+                organizationId,
+                name: { equals: dto.name, mode: 'insensitive' },
+            },
+        });
+
+        if (existing) {
+            throw new AppError(
+                HttpStatus.CONFLICT,
+                'A branch with this name already exists in your organization',
+            );
+        }
+
         const branch = await this.prisma.branch.create({
             data: {
                 name: dto.name,
@@ -84,6 +100,24 @@ export class BranchService {
         dto: UpdateBranchDto,
     ) {
         await this.getBranchById(id, organizationId);
+
+        // CHECK IF NEW NAME CONFLICTS WITH EXISTING BRANCH
+        if (dto.name) {
+            const duplicate = await this.prisma.branch.findFirst({
+                where: {
+                    organizationId,
+                    name: { equals: dto.name, mode: 'insensitive' },
+                    id: { not: id },
+                },
+            });
+
+            if (duplicate) {
+                throw new AppError(
+                    HttpStatus.CONFLICT,
+                    'A branch with this name already exists in your organization',
+                );
+            }
+        }
 
         return await this.prisma.branch.update({
             where: { id },

@@ -1,11 +1,8 @@
-import {
-    BadRequestException,
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { AppError } from 'src/common/errors/app-error';
 
 @Injectable()
 export class RoleService {
@@ -48,7 +45,7 @@ export class RoleService {
         });
 
         if (!role) {
-            throw new NotFoundException('Role not found');
+            throw new AppError(HttpStatus.NOT_FOUND, 'Role not found');
         }
 
         return {
@@ -63,6 +60,21 @@ export class RoleService {
     }
 
     async createRole(organizationId: string, dto: CreateRoleDto) {
+        // CHECK FOR DUPLICATE ROLE NAME IN ORGANIZATION
+        const existing = await this.prisma.role.findFirst({
+            where: {
+                organizationId,
+                name: { equals: dto.name, mode: 'insensitive' },
+            },
+        });
+
+        if (existing) {
+            throw new AppError(
+                HttpStatus.CONFLICT,
+                'A role with this name already exists in your organization',
+            );
+        }
+
         const role = await this.prisma.role.create({
             data: {
                 name: dto.name,
@@ -84,6 +96,24 @@ export class RoleService {
     ) {
         await this.getRoleById(id, organizationId);
 
+        // CHECK IF NEW NAME CONFLICTS WITH EXISTING ROLE
+        if (dto.name) {
+            const duplicate = await this.prisma.role.findFirst({
+                where: {
+                    organizationId,
+                    name: { equals: dto.name, mode: 'insensitive' },
+                    id: { not: id },
+                },
+            });
+
+            if (duplicate) {
+                throw new AppError(
+                    HttpStatus.CONFLICT,
+                    'A role with this name already exists in your organization',
+                );
+            }
+        }
+
         return await this.prisma.role.update({
             where: { id },
             data: {
@@ -97,7 +127,8 @@ export class RoleService {
         const role = await this.getRoleById(id, organizationId);
 
         if (role.staffCount > 0) {
-            throw new BadRequestException(
+            throw new AppError(
+                HttpStatus.BAD_REQUEST,
                 'Cannot delete role that has assigned staff members',
             );
         }
